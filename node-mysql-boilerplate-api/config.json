@@ -1,19 +1,19 @@
 {
-    "database": {
-      "host": "${DB_HOST}",
-      "port": "${DB_PORT}",
-      "user": "${DB_USER}",
-      "password": "${DB_PASSWORD}",
-      "database": "${DB_NAME}"
-    },
-    "secret": "${JWT_SECRET}",
-    "emailFrom": "info@node-mysql-signup-verification-api.com",
-    "smtpOptions": {
-      "host": "${SMTP_HOST}",
-      "port": "${SMTP_PORT}",
-      "auth": {
-        "user": "${SMTP_USER}",
-        "pass": "${SMTP_PASS}"
-      }
+  "database": {
+    "host": "localhost",
+    "port": 3307,
+    "user": "root",
+    "password": "",
+    "database": "user_management_db"
+  },
+  "secret": "YourJWTSecretKey123!",
+  "emailFrom": "info@node-mysql-signup-verification-api.com",
+  "smtpOptions": {
+    "host": "smtp.ethereal.email",
+    "port": 587,
+    "auth": {
+      "user": "jordyn88@ethereal.email",
+      "pass": "5YMeY6KFH9BrBxpRsX"
     }
   }
+}
