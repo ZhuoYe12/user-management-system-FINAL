@@ -1,0 +1,27 @@
+{
+  "name": "user-management-system",
+  "version": "1.0.0",
+  "description": "Integrated User Management System",
+  "main": "node-mysql-boilerplate-api/server.js",
+  "scripts": {
+    "install:frontend": "cd angular-signup-verification-boilerplate && npm install",
+    "install:backend": "cd node-mysql-boilerplate-api && npm install",
+    "install:all": "npm run install:frontend && npm run install:backend",
+    "start:frontend": "cd angular-signup-verification-boilerplate && ng serve",
+    "start:backend": "cd node-mysql-boilerplate-api && npm start",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:server": "node node-mysql-boilerplate-api/server.js",
+    "dev": "nodemon node-mysql-boilerplate-api/server.js"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "joi": "^17.13.3",
+    "rootpath": "^0.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
