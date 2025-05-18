@@ -1,0 +1,1 @@
+web: cd node-mysql-boilerplate-api && npm start 
