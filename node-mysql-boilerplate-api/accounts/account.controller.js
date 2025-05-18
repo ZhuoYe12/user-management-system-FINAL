@@ -27,45 +27,67 @@ router.put('/:id/status', authorize(Role.Admin), updateStatusSchema, updateStatu
 module.exports = router;
 
 function authenticateSchema(req, res, next) {
+  console.log('Validating authentication schema...');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
   const schema = Joi.object({
-    email: Joi.string().required(),
+    email: Joi.string().email().required(),
     password: Joi.string().required()
   });
-  validateRequest(req, next, schema);
+  
+  try {
+    validateRequest(req, next, schema);
+  } catch (error) {
+    console.error('Authentication validation error:', error);
+    res.status(400).json({ message: error.message });
+  }
 }
 
 async function authenticate(req, res, next) {
   try {
+    console.log('Starting authentication process...');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const { email, password } = req.body;
     const ipAddress = req.ip;
+    
+    console.log('Authenticating user:', email);
+    console.log('IP Address:', ipAddress);
+    
     const account = await accountService.authenticate({ email, password, ipAddress });
+    console.log('Authentication successful for user:', email);
+    
     setTokenCookie(res, account.refreshToken);
     res.json(account);
   } catch (error) {
-    next(error);
+    console.error('Authentication error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(400).json({ message: error.message || 'Authentication failed' });
   }
 }
 
 async function refreshToken(req, res, next) {
   try {
+    console.log('Starting token refresh process...');
     const token = req.cookies.refreshToken;
     const ipAddress = req.ip;
     
-    // Add validation for missing token
+    console.log('Refresh token:', token ? 'Present' : 'Missing');
+    console.log('IP Address:', ipAddress);
+    
     if (!token) {
       return res.status(400).json({ message: 'Refresh token is required' });
     }
-
-    // Validate IP address format
-    if (!ipAddress || !/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ipAddress)) {
-      return res.status(400).json({ message: 'Invalid IP address' });
-    }
     
     const account = await accountService.refreshToken({ token, ipAddress });
+    console.log('Token refresh successful');
+    
     setTokenCookie(res, account.refreshToken);
     res.json(account);
   } catch (error) {
-    next(error);
+    console.error('Token refresh error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(400).json({ message: error.message || 'Token refresh failed' });
   }
 }
 
@@ -97,6 +119,9 @@ async function revokeToken(req, res, next) {
 }
 
 function registerSchema(req, res, next) {
+  console.log('Validating registration schema...');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
   const schema = Joi.object({
     title: Joi.string().required(),
     firstName: Joi.string().required(),
@@ -106,7 +131,13 @@ function registerSchema(req, res, next) {
     confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
     acceptTerms: Joi.boolean().valid(true).required()
   });
-  validateRequest(req, next, schema);
+  
+  try {
+    validateRequest(req, next, schema);
+  } catch (error) {
+    console.error('Registration validation error:', error);
+    res.status(400).json({ message: error.message });
+  }
 }
 
 async function register(req, res, next) {
@@ -127,12 +158,12 @@ async function register(req, res, next) {
       if (error.name === 'SequelizeUniqueConstraintError') {
         return res.status(400).json({ message: 'Email already registered' });
       }
-      throw error; // Re-throw other errors to be caught by the outer try-catch
+      throw error;
     }
   } catch (error) {
     console.error('Registration error:', error);
     console.error('Error stack:', error.stack);
-    next(error);
+    res.status(400).json({ message: error.message || 'Registration failed' });
   }
 }
 
