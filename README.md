@@ -1,266 +1,115 @@
-# User Management System
+# User Management System Backend API
 
-##  Introduction
-A full-stack application for managing user accounts with features like email sign-up, verification, authentication, role-based authorization, and CRUD operations.
+This is the backend API for the User Management System, providing user authentication, registration, verification, and management functionalities.
 
-## Installation
-Follow these steps to set up project locally.
+## Technologies Used
 
-### 1. Clone the repository. 
+*   **Database:** PostgreSQL
+*   **Backend:** Node.js with Express and Sequelize ORM
+*   **Frontend:** Angular (This backend is designed to work with a separate Angular frontend application deployed on Render)
 
-```
-git clone https://github.com/phloxxx/user-management-system.git
-```
+## Recent Changes
 
-### 2. Install dependencies:
+*   Updated Sequelize model relationships in `_helpers/db.js` to explicitly define foreign key column names (`userId` for employees, `accountId` for refresh tokens) to resolve schema synchronization issues.
+*   Added the `accountId` column to the `refresh-token.model.js`.
+*   Added `mysql2` dependency to `package.json` (Note: While mysql2 was added during troubleshooting a potential database switch, the project currently uses PostgreSQL).
 
-```
-npm install
-npm run install:backend
-npm run install:frontend
-```
+## Setup
 
-### 3. Start the backend server:
+To get the project running, follow these steps:
 
-```
-npm start
-```
+1.  **Clone the repository:**
 
-### 4. Start the Angular app:
+    ```bash
+    git clone https://github.com/AsenjoJL/user-management-system-backend/tree/salazar-final
+    
 
-```
-ng serve
-```
+2.  **Install Dependencies:** Install the necessary Node.js packages.
 
-## Usage
-* Register a new account at */accounts/register*.
-* Verify your email using the link sent to your inbox.
-* Log in at */accounts/login*.
+    ```bash
+    npm install
+    ```
 
-## Testing
-### **Functional testing results:** [https://docs.google.com/document/d/1zkrHnNJTvbq-L289UgOpzY6RdiAnttoRgajw37rYZjw/edit?tab=t.0]
+3.  **Set up PostgreSQL Database:** You need a running PostgreSQL database instance. 
+    *   If deploying on Railway, add a PostgreSQL database service to your project.
+    *   Obtain the connection details for your PostgreSQL database (host, port, database name, user, password).
 
----
-### **Security Testing Documentation**
-#### 1. XSS (Cross-Site Scripting)
-- **Status:** ❌ Vulnerable
-- **Location:** `fake-backend.ts`
-- **Risk Level:** High
-- **Details:** Unsanitized HTML content rendering in alert messages
-```typescript
-alertService.info(`
-    <h4>Email Already Registered</h4>
-    <p>Your email <strong>${account.email}</strong> is already registered.</p>
-`);
-```
-- **Recommendation:** Implement Angular's DomSanitizer
-```typescript
-// filepath: src/app/services/alert.service.ts
-import { DomSanitizer, SecurityContext } from '@angular/platform-browser';
+4.  **Configure Database Connection:** The application reads database connection details primarily from the `DATABASE_URL` environment variable (recommended for hosting platforms like Railway) or falls back to the `connectionString` in `config.json`.
 
-export class AlertService {
-  constructor(private sanitizer: DomSanitizer) {}
+    *   **Using `DATABASE_URL` (Recommended for Railway):** Set the `DATABASE_URL` environment variable on your hosting platform (e.g., Railway dashboard) to the full connection string URL for your PostgreSQL database. The format is typically:
+        `postgresql://[user]:[password]@[host]:[port]/[database]`
 
-  info(content: string): void {
-    const sanitizedContent = this.sanitizer.sanitize(SecurityContext.HTML, content);
-    // Display sanitized content
-  }
-}
-```
-- DomSanitizer strips potentially dangerous HTML/JavaScript
-- Prevents execution of malicious scripts while preserving legitimate formatting
+        Example for Railway internal connection:
+        `postgresql://[user]:[password]@[postgres-service-name].railway.internal:[port]/[database]`
 
----
-#### 2. CSRF Protection
-- **Status:** ❌ Missing
-- **Risk Level:** Critical
-- **Impact:** Vulnerable to cross-site request forgery attacks
-- **Recommendation:** Implement CSRF tokens using csurf middleware
-```javascript
-// filepath: src/server.js
-const csrf = require('csurf');
-const cookieParser = require('cookie-parser');
+    *   **Using `config.json` (for local development or if not using `DATABASE_URL`):** Update the `connectionString` and the `database` object in `node-mysql-boilerplate-api/config.json` with your PostgreSQL database details.
 
-app.use(cookieParser());
-app.use(csrf({ cookie: true }));
+        ```json
+        {
+          "connectionString": "postgresql://[user]:[password]@[host]:[port]/[database]",
+          "database": {
+            "host": "[host]",
+            "port": [port],
+            "user": "[user]",
+            "password": "[password]",
+            "database": "[database]"
+          },
+          ...
+        }
+        ```
+        (Replace placeholders with your actual PostgreSQL credentials and details)
 
-app.use((req, res, next) => {
-  res.cookie('XSRF-TOKEN', req.csrfToken());
-  next();
-});
-```
-**Angular Integration**
-```javascript
-import { HttpHeaders } from '@angular/common/http';
+5.  **Database Schema Synchronization:** Ensure your PostgreSQL database schema matches the Sequelize models. In `development` environment, `sequelize.sync({ alter: true })` is used to automatically sync. In `production`, it only verifies tables. You may need to:
+    *   Run the application once in a development-like environment pointed to your DB to let Sequelize sync.
+    *   Manually add columns (`details` to `workflows`, `approverId` to `requests`, `accountId` to `refreshTokens`) to your PostgreSQL database using a PostgreSQL client (like pgAdmin or DBeaver) based on your Sequelize models.
 
-const httpOptions = {
-  headers: new HttpHeaders({
-    'Content-Type': 'application/json',
-    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
-  })
-};
-```
-- Generates unique CSRF token per session
-- Prevents cross-site request forgery attacks
-- Attacker's site cannot access/replicate token
+## Running the Application
 
----
-#### 3. Security Headers
-- **Status:** ❌ Missing
-- **Risk Level:** High
-- **Details:** Basic security headers not configured
-- **Recommendation:** Implement Helmet middleware
-```javascript
-// filepath: src/server.js
-const helmet = require('helmet');
+To run the full application, you need both the backend API and the frontend Angular application running.
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  frameguard: { action: 'deny' },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true
-  }
-}));
-```
-- Sets critical security headers
-- Prevents various attack vectors including XSS and clickjacking
-- Forces HTTPS connections
-- Controls resource loading sources
+1.  **Run the Backend API:**
 
----
-#### 4. Input Validation
-- **Status:** ⚠️ Partial Implementation
-- **Risk Level:** Medium
-- **Location:** `src/controllers/user.controller.ts`
-- **Details:** Incomplete validation on user input
-- **Recommendation:** Strengthen validation rules
-```typescript
-// filepath: src/validators/user.validator.ts
-import * as Joi from 'joi';
+    Navigate to the `node-mysql-boilerplate-api` directory in your terminal.
 
-export const userValidationSchema = Joi.object({
-  email: Joi.string()
-    .email()
-    .required()
-    .trim()
-    .lowercase(),
-  password: Joi.string()
-    .min(8)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/)
-    .required(),
-  username: Joi.string()
-    .alphanum()
-    .min(3)
-    .max(30)
-    .required()
-});
-```
-- Validates all input before processing
-- Enforces strict data format rules
-- Prevents injection attacks
-- Provides clear error messages
+    *   For development (with auto-reloading):
 
----
-#### 5. Rate Limiting
-- **Status:** ❌ Missing
-- **Risk Level:** High
-- **Impact:** Vulnerable to brute force attacks
-- **Recommendation:** Implement rate limiting for API endpoints
-```javascript
-// filepath: src/middleware/rateLimiter.js
-const rateLimit = require('express-rate-limit');
+        ```bash
+        npm run dev
+        ```
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
-  message: 'Too many login attempts, please try again after 15 minutes'
-});
+    *   For production:
 
-app.use('/api/auth/login', loginLimiter);
-```
-- Tracks requests by IP address
-- Blocks excessive attempts
-- Prevents brute force attacks
-- Different limits for different endpoints
+        ```bash
+        npm start
+        ```
 
----
-#### 6. Password Policy
-- **Status:** ⚠️ Weak
-- **Location:** `src/services/auth.service.js`
-- **Details:** Minimal password requirements
-- **Recommendation:** Enhance password complexity rules
-```javascript
-// filepath: src/services/auth.service.js
-const passwordSchema = Joi.string()
-  .min(8)
-  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*#?&]{8,}$/)
-  .required()
-  .messages({
-    'string.pattern.base': 'Password must contain uppercase, lowercase, number and special character'
-  });
-```
-- Enforces strong password requirements
-- Requires mixed case, numbers, and special characters
-- Minimum length of 8 characters
-- Provides clear error messages
+    Ensure your database connection is configured correctly as described in step 4 of the Setup section. The backend will typically run on port 4000 (check `server.js`).
 
-## Contributing
-* **Durano, Jhanna Kris** : Responsible for managing the main branch, reviewing pull requests, and ensuring smooth integration.
-Backend Developers (2 members):
-* **Real, Rovic Steve**: Implement email sign-up, verification, and authentication. In continuation, implemented workflows and requests.
-* **Ocliasa, Niño Rollane**: Implement role-based authorization, forgot password/reset password, and CRUD operations. In continuation, implemented employees and departments.
-Frontend Developers (2 members):
-* **Durano, Jhanna Kris**: Implement email sign-up, verification, and authentication. In continuation, implemented the fake backend.
-* **Arcana, Sean Joseph**: Implement profile management, admin dashboard, and fake backend. In continuation, implemented the structure of ui (html).
-Testers (2 members):
-* **Real, Rovic Steve**:: Perform functional testing and validate user flows.
-* **Ocliasa, Niño Rollane**: Perform security testing and validate edge cases.
+2.  **Run the Frontend Application:**
 
-## License
-### MIT License
+    Navigate to the `angular-signup-verification-boilerplate` directory (or wherever your Angular frontend is located).
 
----
-### **Best Practices**
-1. **Commit Often:** Make small, frequent commits with clear messages to track progress.
-2. **Use Descriptive Branch Names:** Name branches based on their purpose.
-3. **Review Code Before Merging:** Always review pull requests to ensure code quality.
-4. **Keep Branches Updated:** Regularly pull changes from `main` to avoid large conflicts.
-5. **Communicate with Your Team:** Use GitHub issues or comments to discuss tasks and updates.
----
-### **Deliverables**
-1. A fully functional **Node.js + MySQL - Boilerplate APILinks to an external site.** backend with:
-- Email sign-up and verification.
-- JWT authentication with refresh tokens.
-- Role-based authorization.
-- Forgot password and reset password functionality.
-- CRUD operations for managing accounts.
-2. A fully functional **Angular 10 (17 updated) BoilerplateLinks to an external site.** frontend with:
-- Email sign-up and verification.
-- JWT authentication with refresh tokens.
-- Role-based authorization.
-- Profile management.
-- Admin dashboard for managing accounts.
-- **Fake backend** implementation for backend-less development.
-3. A clean and well-maintained GitHub repository with:
-- Proper branching structure.
-- Reviewed and merged pull requests.
-- Resolved merge conflicts.
-4. Comprehensive **README.md documentation** covering installation, usage, testing, and contributing guidelines.
-5. Test reports from **testers** ensuring the application is functional and secure.
----
-### **Evaluation Criteria**
-Each team member will be evaluated individually based on:
-1. **Code Quality:** Clean, modular, and well-documented code.
-2. **Functionality:** Correct implementation of assigned features.
-3. **Collaboration:** Effective use of Git and GitHub for collaboration.
-4. **Problem-Solving:** Ability to resolve merge conflicts and debug issues.
-5. **Testing:** Thoroughness of testing and quality of test reports.
----
+    *   Install frontend dependencies:
+
+        ```bash
+        npm install
+        ```
+
+    *   Serve the application:
+
+        ```bash
+        ng serve
+        ```
+
+    The Angular development server will typically run on port 4200. Ensure the `apiUrl` in your frontend's environment files (`environment.ts` and `environment.prod.ts`) is set to the URL of your running backend API (e.g., `http://localhost:4000` for local development, or your Railway backend URL for production).
+
+## Deployment
+
+*   **Backend:** Deploy the `node-mysql-boilerplate-api` directory to your hosting platform (e.g., Railway). Ensure environment variables, particularly `DATABASE_URL`, are set correctly.
+*   **Frontend:** Build the Angular application for production (`ng build --configuration=production`) and deploy the contents of the build output folder (`dist/angular-signup-verification-boilerplate` by default) to a static site hosting service (e.g., Render). Remember to configure the Publish Directory and SPA rewrite rules correctly.
+
+## Key Files
+
+*   `config.json`: Contains application configuration, including fallback database connection details.
+*   `_helpers/db.js`: Initializes the database connection and Sequelize models, defines relationships.
+*   `*/.model.js` files (e.g., `accounts/account.model.js`): Define the Sequelize models and their attributes. 
