@@ -1,11 +1,11 @@
-const config = require('config.json');
+const config = require('../config.json');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
-const sendEmail = require('_helpers/send-email');
-const db = require('_helpers/db');
-const Role = require('_helpers/role');
+const sendEmail = require('../_helpers/send-email');
+const db = require('../_helpers/db');
+const Role = require('../_helpers/role');
 
 module.exports = {
     authenticate,
@@ -46,7 +46,7 @@ async function authenticate({ email, password, ipAddress }) {
     console.log('Authenticating user:', email);
     console.log('IP Address:', ipAddress);
 
-    const account = await db.Account.scope('withHash').findOne({ where: { email } });
+    const account = await db.accounts.scope('withHash').findOne({ where: { email } });
     console.log('Account found:', account ? 'Yes' : 'No');
 
     if (!account || !account.isVerified || !bcrypt.compareSync(password, account.passwordHash)) {
@@ -133,7 +133,7 @@ async function register(params, origin) {
     console.log('Origin:', origin);
 
     // validate
-    const existingAccount = await db.Account.findOne({ where: { email: params.email } });
+    const existingAccount = await db.accounts.findOne({ where: { email: params.email } });
     if (existingAccount) {
         console.log('Account already exists:', params.email);
         // send already registered error in email to prevent account enumeration
@@ -142,10 +142,10 @@ async function register(params, origin) {
 
     console.log('Creating new account...');
     // create account object
-    const account = new db.Account(params);
+    const account = new db.accounts(params);
 
     // first registered account is an admin
-    const isFirstAccount = (await db.Account.count()) === 0;
+    const isFirstAccount = (await db.accounts.count()) === 0;
     account.role = isFirstAccount ? Role.Admin : Role.User;
     account.verificationToken = randomTokenString();
     console.log('Account role set to:', account.role);
@@ -171,7 +171,7 @@ async function register(params, origin) {
 async function verifyEmail({ token }) {
     console.log('Verifying email with token');
     
-    const account = await db.Account.findOne({ where: { verificationToken: token } });
+    const account = await db.accounts.findOne({ where: { verificationToken: token } });
     console.log('Account found:', account ? 'Yes' : 'No');
 
     if (!account) {
@@ -188,7 +188,7 @@ async function verifyEmail({ token }) {
 async function forgotPassword({ email }, origin) {
     console.log('Processing forgot password request for:', email);
     
-    const account = await db.Account.findOne({ where: { email } });
+    const account = await db.accounts.findOne({ where: { email } });
     console.log('Account found:', account ? 'Yes' : 'No');
     
     // always return ok response to prevent email enumeration
@@ -208,7 +208,7 @@ async function forgotPassword({ email }, origin) {
 async function validateResetToken({ token }) {
     console.log('Validating reset token');
     
-    const account = await db.Account.findOne({ 
+    const account = await db.accounts.findOne({ 
         where: { 
             resetToken: token,
             resetTokenExpires: { [Op.gt]: Date.now() }
@@ -237,7 +237,7 @@ async function resetPassword({ token, password }) {
 
 async function getAll() {
     console.log('Getting all accounts');
-    const accounts = await db.Account.findAll();
+    const accounts = await db.accounts.findAll();
     console.log('Found', accounts.length, 'accounts');
     return accounts.map(x => basicDetails(x));
 }
@@ -254,11 +254,11 @@ async function create(params) {
     console.log('Params:', JSON.stringify(params, null, 2));
 
     // validate
-    if (await db.Account.findOne({ where: { email: params.email } })) {
+    if (await db.accounts.findOne({ where: { email: params.email } })) {
         throw 'Email "' + params.email + '" is already registered';
     }
     
-    const account = new db.Account(params);
+    const account = new db.accounts(params);
     account.verified = Date.now();
     
     // hash password
@@ -278,7 +278,7 @@ async function update(id, params) {
     console.log('Account found:', account ? 'Yes' : 'No');
 
     // validate (if email was changed)
-    if (params.email && account.email !== params.email && await db.Account.findOne({ where: { email: params.email } })) {
+    if (params.email && account.email !== params.email && await db.accounts.findOne({ where: { email: params.email } })) {
         throw 'Email "' + params.email + '" is already registered';
     }
     
@@ -307,7 +307,7 @@ async function _delete(id) {
 // helper functions
 
 async function getAccount(id) {
-    const account = await db.Account.findByPk(id);
+    const account = await db.accounts.findByPk(id);
     if (!account) throw 'Account not found';
     return account;
 }
@@ -318,7 +318,7 @@ async function getRefreshToken(token) {
         throw 'Invalid token';
     }
     
-    const refreshToken = await db.RefreshToken.findOne({ 
+    const refreshToken = await db.refreshTokens.findOne({ 
         where: { token } 
     });
     
@@ -337,7 +337,7 @@ function generateJwtToken(account) {
 
 function generateRefreshToken(account, ipAddress) {
     // create a refresh token that expires in 7 days
-    return new db.RefreshToken({
+    return new db.refreshTokens({
         accountId: account.id,
         token: randomTokenString(),
         expires: new Date(Date.now() + 7*24*60*60*1000),
