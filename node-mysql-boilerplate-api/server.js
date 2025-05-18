@@ -31,7 +31,6 @@ app.use(limiter);
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'https://user-management-system-backend-x52j.onrender.com',
         'https://user-management-frontend.onrender.com',
         'https://user-management-system-final-production.up.railway.app'
     ],
