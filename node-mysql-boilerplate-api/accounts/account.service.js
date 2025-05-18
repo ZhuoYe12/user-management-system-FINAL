@@ -128,44 +128,67 @@ async function revokeToken({ token, ipAddress }) {
 }
 
 async function register(params, origin) {
-    console.log('Starting registration process...');
-    console.log('Registration params:', JSON.stringify(params, null, 2));
-    console.log('Origin:', origin);
+    try {
+        console.log('Starting registration process...');
+        console.log('Registration params:', JSON.stringify(params, null, 2));
+        console.log('Origin:', origin);
 
-    // validate
-    const existingAccount = await db.accounts.findOne({ where: { email: params.email } });
-    if (existingAccount) {
-        console.log('Account already exists:', params.email);
-        // send already registered error in email to prevent account enumeration
-        return await sendAlreadyRegisteredEmail(params.email, origin);
+        // validate
+        const existingAccount = await db.accounts.findOne({ where: { email: params.email } });
+        if (existingAccount) {
+            console.log('Account already exists:', params.email);
+            // send already registered error in email to prevent account enumeration
+            return await sendAlreadyRegisteredEmail(params.email, origin);
+        }
+
+        console.log('Creating new account...');
+        // create account object
+        const account = new db.accounts(params);
+
+        // first registered account is an admin
+        const isFirstAccount = (await db.accounts.count()) === 0;
+        account.role = isFirstAccount ? Role.Admin : Role.User;
+        account.verificationToken = randomTokenString();
+        console.log('Account role set to:', account.role);
+        console.log('Verification token generated');
+
+        // hash password
+        account.passwordHash = hash(params.password);
+        console.log('Password hashed');
+
+        console.log('Saving account to database...');
+        // save account
+        try {
+            await account.save();
+            console.log('Account saved successfully');
+        } catch (saveError) {
+            console.error('Error saving account:', saveError);
+            if (saveError.name === 'SequelizeValidationError') {
+                throw new Error(`Validation error: ${saveError.errors.map(e => e.message).join(', ')}`);
+            }
+            if (saveError.name === 'SequelizeUniqueConstraintError') {
+                throw new Error('Email already registered');
+            }
+            throw saveError;
+        }
+
+        console.log('Sending verification email...');
+        // send email
+        try {
+            await sendVerificationEmail(account, origin);
+            console.log('Verification email sent');
+        } catch (emailError) {
+            console.error('Error sending verification email:', emailError);
+            // Don't throw the error, just log it
+            // The account is still created and can be verified later
+        }
+
+        return basicDetails(account);
+    } catch (error) {
+        console.error('Registration process error:', error);
+        console.error('Error stack:', error.stack);
+        throw error;
     }
-
-    console.log('Creating new account...');
-    // create account object
-    const account = new db.accounts(params);
-
-    // first registered account is an admin
-    const isFirstAccount = (await db.accounts.count()) === 0;
-    account.role = isFirstAccount ? Role.Admin : Role.User;
-    account.verificationToken = randomTokenString();
-    console.log('Account role set to:', account.role);
-    console.log('Verification token generated');
-
-    // hash password
-    account.passwordHash = hash(params.password);
-    console.log('Password hashed');
-
-    console.log('Saving account to database...');
-    // save account
-    await account.save();
-    console.log('Account saved successfully');
-
-    console.log('Sending verification email...');
-    // send email
-    await sendVerificationEmail(account, origin);
-    console.log('Verification email sent');
-
-    return basicDetails(account);
 }
 
 async function verifyEmail({ token }) {

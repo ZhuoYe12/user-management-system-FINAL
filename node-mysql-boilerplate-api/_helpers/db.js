@@ -65,23 +65,33 @@ db.requests.belongsTo(db.accounts, { as: 'Approver', foreignKey: 'approverId' })
 db.requests.hasMany(db.workflows, { onDelete: 'CASCADE' });
 db.workflows.belongsTo(db.requests);
 
-// Test DB connection
-sequelize.authenticate()
-  .then(() => {
-    console.log('Database connection established successfully.');
-    // Sync DB in development
-    if (process.env.NODE_ENV === 'development') {
-      return sequelize.sync({ alter: true });
+// Test DB connection and sync models
+async function initializeDatabase() {
+    try {
+        await sequelize.authenticate();
+        console.log('Database connection established successfully.');
+
+        // Sync all models in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Syncing database models...');
+            await sequelize.sync({ alter: true });
+            console.log('Database models synced successfully');
+        } else {
+            // In production, just verify the tables exist
+            console.log('Verifying database tables...');
+            const tables = await sequelize.query(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
+                { type: Sequelize.QueryTypes.SELECT }
+            );
+            console.log('Existing tables:', tables.map(t => t.table_name).join(', '));
+        }
+    } catch (err) {
+        console.error('Database initialization error:', err);
+        process.exit(1); // Exit if no DB connection
     }
-  })
-  .then(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Database synced successfully');
-    }
-  })
-  .catch(err => {
-    console.error('Unable to connect to the database:', err);
-    process.exit(1); // Exit if no DB connection
-  });
+}
+
+// Initialize the database
+initializeDatabase();
 
 module.exports = db;

@@ -113,13 +113,25 @@ async function register(req, res, next) {
   try {
     console.log('Starting registration process...');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Origin:', req.get('origin'));
     
-    const account = await accountService.register(req.body, req.get('origin'));
-    console.log('Account registered successfully:', JSON.stringify(account, null, 2));
-    
-    res.json({ message: 'Registration successful, please check your email for verification instructions' });
+    try {
+      const account = await accountService.register(req.body, req.get('origin'));
+      console.log('Account registered successfully:', JSON.stringify(account, null, 2));
+      res.json({ message: 'Registration successful, please check your email for verification instructions' });
+    } catch (error) {
+      console.error('Registration service error:', error);
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({ message: error.errors.map(e => e.message).join(', ') });
+      }
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({ message: 'Email already registered' });
+      }
+      throw error; // Re-throw other errors to be caught by the outer try-catch
+    }
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error stack:', error.stack);
     next(error);
   }
 }
