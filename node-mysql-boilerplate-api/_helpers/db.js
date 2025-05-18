@@ -45,10 +45,10 @@ db.workflows = require('../workflows/workflow.model')(sequelize, Sequelize);
 
 // Define relationships
 db.accounts.hasMany(db.refreshTokens, { onDelete: 'CASCADE' });
-db.refreshTokens.belongsTo(db.accounts);
+db.refreshTokens.belongsTo(db.accounts, { foreignKey: 'accountId' });
 
 db.accounts.hasOne(db.employees, { onDelete: 'CASCADE' });
-db.employees.belongsTo(db.accounts);
+db.employees.belongsTo(db.accounts, { foreignKey: 'userId' });
 
 db.departments.hasMany(db.employees);
 db.employees.belongsTo(db.departments);
