@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install"
+buildCommand = "cd node-mysql-boilerplate-api && npm install"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "cd node-mysql-boilerplate-api && npm start"
 healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"

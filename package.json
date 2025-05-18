@@ -1,13 +1,18 @@
 {
   "name": "user-management-system",
   "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "node-mysql-boilerplate-api"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "description": "User Management System with Angular Frontend and Node.js Backend",
   "scripts": {
     "start": "cd node-mysql-boilerplate-api && npm install && npm start",
     "install-all": "npm install && cd node-mysql-boilerplate-api && npm install"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   },
   "dependencies": {
     "@angular/common": "^19.2.11",
