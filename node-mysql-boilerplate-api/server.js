@@ -29,7 +29,12 @@ app.use(limiter);
 
 // Updated CORS configuration to allow both local dev and deployed frontend domains
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://user-management-system-backend-x52j.onrender.com', 'https://user-management-frontend.onrender.com'],
+    origin: [
+        'http://localhost:3000',
+        'https://user-management-system-backend-x52j.onrender.com',
+        'https://user-management-frontend.onrender.com',
+        'https://user-management-system-final-production.up.railway.app'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
