@@ -4,6 +4,9 @@ const config = require('../config.json');
 // Use DATABASE_URL env var or fallback to config file connection string
 const dbUrl = process.env.DATABASE_URL || config.connectionString;
 console.log('Database URL:', dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'undefined');
+console.log('Database host:', config.database.host);
+console.log('Database port:', config.database.port);
+console.log('Database name:', config.database.database);
 
 if (!dbUrl) {
     throw new Error('DATABASE_URL environment variable is not set');
@@ -17,7 +20,7 @@ const sequelize = new Sequelize(dbUrl, {
             rejectUnauthorized: false,
         } : false,
     },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: (msg) => console.log('Database query:', msg),
     pool: {
         max: 5,
         min: 0,
@@ -64,17 +67,21 @@ db.workflows.belongsTo(db.requests);
 
 // Test DB connection
 sequelize.authenticate()
-  .then(() => console.log('Database connection established.'))
+  .then(() => {
+    console.log('Database connection established successfully.');
+    // Sync DB in development
+    if (process.env.NODE_ENV === 'development') {
+      return sequelize.sync({ alter: true });
+    }
+  })
+  .then(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Database synced successfully');
+    }
+  })
   .catch(err => {
     console.error('Unable to connect to the database:', err);
     process.exit(1); // Exit if no DB connection
   });
-
-// Sync DB only in development to prevent accidental schema changes in production
-if (process.env.NODE_ENV === 'development') {
-  sequelize.sync({ alter: true })
-    .then(() => console.log('Database synced successfully'))
-    .catch(err => console.error('Error syncing database:', err));
-}
 
 module.exports = db;

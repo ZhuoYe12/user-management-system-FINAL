@@ -1,5 +1,5 @@
 {
-  "connectionString": "postgresql://postgres:mRRWKpCxvltpPLyjGHqTNREUuQeZbwPP@switchback.proxy.rlwy.net:18439/railway",
+  "connectionString": "postgresql://postgres:mRRWKpCxvltpPLyjGHqTNREUuQeZbwPP@postgres-7wqe.railway.internal:5432/railway",
   "database": {
     "host": "postgres-7wqe.railway.internal",
     "port": 5432,
