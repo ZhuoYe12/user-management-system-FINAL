@@ -61,11 +61,22 @@ module.exports = (sequelize, DataTypes) => {
         isActive: {
             type: DataTypes.BOOLEAN,
             defaultValue: true
+        },
+        created: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        updated: {
+            type: DataTypes.DATE
         }
     }, {
         sequelize,
         modelName: 'Account',
         tableName: 'accounts',
+        timestamps: true,
+        createdAt: 'created',
+        updatedAt: 'updated',
         defaultScope: {
             // exclude password hash by default
             attributes: { exclude: ['passwordHash'] }
